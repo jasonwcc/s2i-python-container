@@ -41,6 +41,19 @@ RUN \
 {% else %}
     virtualenv-$PYTHON_VERSION ${APP_ROOT} && \
 {% endif %}
+{% if spec.version != "2.7" %}
+    # Python 3 only code, Python 2 installs pip from PyPI in the assemble script. \
+    # We have to upgrade pip to a newer verison because: \
+    # * pip < 9 does not support different packages' versions for Python 2/3 \
+    # * pip < 19.3 does not support manylinux2014 wheels. Only manylinux2014 wheels \
+    #   support platforms like ppc64le, aarch64 or armv7 \
+    # We are newly using wheel from one of the latest stable Fedora releases (from RPM python-pip-wheel) \
+    # because it's tested better that whatever version from PyPI and contains useful patches. \
+    # We have to do it here so the permissions are correctly fixed and pip is able  to reinstall \
+    # itself in the next build phases and in the assemble script if user wants the latest version \
+    ${APP_ROOT}/bin/pip install /opt/wheels/pip-* && \
+{% endif %}
+    rm -r /opt/wheels && \
     chown -R 1001:0 ${APP_ROOT} && \
     fix-permissions ${APP_ROOT} -P && \
     rpm-file-permissions
